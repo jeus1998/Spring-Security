@@ -57,3 +57,36 @@ public final class DefaultSecurityFilterChain implements SecurityFilterChain {
   `FilterChainProxy` 생성자에게 전달한다
 
 ![6.png](Image%2F6.png)
+
+### 정리 
+
+- 1) HttpSecurityConfiguration -> HttpSecurity 생성 
+
+```java
+http
+  .csrf(withDefaults())
+  .addFilter(webAsyncManagerIntegrationFilter)
+  .exceptionHandling(withDefaults())
+  .headers(withDefaults())
+  .sessionManagement(withDefaults())
+  .securityContext(withDefaults())
+  .requestCache(withDefaults())
+  .anonymous(withDefaults())
+  .servletApi(withDefaults())
+  .apply(new DefaultLoginPageConfigurer<>());
+http.logout(withDefaults());
+// @formatter:on
+applyCorsIfAvailable(http);
+applyDefaultConfigurers(http);
+return http;
+```
+- HttpSecurity 객체 생성을 하면서 보안에 필요한 여러가지 필터를 생성
+- 2) WebSecurityConfiguration -> WebSecurity 생성 
+- 3) SpringBootWebSecurityConfiguration -> http.build()
+  - SecurityConfigurer 초기화 진행 
+  - init()
+  - configure()
+- 4) (Default)SecurityFilterChain 빈 생성 완료 
+- 5) SecurityFilterChain 빈을 SecurityBuilder 저장
+- 6) WebSecurity 가 build()를 실행하면 SecurityBuilder 에서 SecurityFilterChain을 꺼내어 FilterChainProxy 생성자에게 전달
+- FilterChainProxy 생성 끝 
