@@ -1,0 +1,7 @@
+# BasicAuthenticationFilter 테스트
+
+# 헤더가 없으면 바로 do Filter() 다른 필터에게 위임한다
+# 잘못된 데이터를 가지고 있는
+
+GET localhost:8080/
+authorization: Basic dXNlcjEyOjExMTE=
