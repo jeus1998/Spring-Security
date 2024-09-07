@@ -23,7 +23,14 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
                 .authorizeHttpRequests(auth -> auth.anyRequest().authenticated())
-                .httpBasic(basic -> basic.authenticationEntryPoint(new CustomAuthenticationEntryPoint()));
+                .formLogin(Customizer.withDefaults())
+                .rememberMe(rememberMe -> rememberMe
+                        // .alwaysRemember(true) // default: false
+                        .tokenValiditySeconds(3600) // 1 hour
+                        .userDetailsService(userDetailsService())
+                        .rememberMeCookieName("remember") // default: remember-me
+                        .rememberMeParameter("remember") // default: remember-me
+                        .key("security")); // default 존재
 
         return  http.build();
     }
