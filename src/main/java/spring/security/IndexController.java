@@ -9,4 +9,8 @@ public class IndexController {
     public String index(){
         return "index";
     }
+    @GetMapping("/logoutSuccess")
+    public String logoutSuccess(){
+        return "logoutSuccess";
+    }
 }
