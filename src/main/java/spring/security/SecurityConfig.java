@@ -31,8 +31,6 @@ import java.io.IOException;
 public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        // HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-        // requestCache.setMatchingRequestParameterName("customParam=y");
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/logoutSuccess").permitAll()
