@@ -31,20 +31,13 @@ import java.io.IOException;
 public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-
-        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
-        requestCache.setMatchingRequestParameterName("customParam=y");
+        // HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+        // requestCache.setMatchingRequestParameterName("customParam=y");
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/logoutSuccess").permitAll()
                         .anyRequest().authenticated())
-                .formLogin(form -> form.successHandler((request, response, authentication) -> {
-                    SavedRequest savedRequest = requestCache.getRequest(request, response);
-                    String redirectUrl = savedRequest.getRedirectUrl();
-                    response.sendRedirect(redirectUrl);
-                }))
-                .requestCache(cache -> cache.requestCache(requestCache));
-
+                .formLogin(Customizer.withDefaults());
 
         return  http.build();
     }
