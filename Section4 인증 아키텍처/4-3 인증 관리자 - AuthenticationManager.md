@@ -162,11 +162,146 @@ ProviderManager : AnonymousAuthenticationProvider providers 존재
 그래서 총 2개의 인증 Provider를 가진다. 
 
 폼 로그인 같은 경우 DaoAuthenticationProvider 통해서 인증을 수행 
+
+두 Provider는 초기화 과정에서 Manager에 저장 
 ```
 
+### Custom 테스트 
 
+CustomAuthenticationFilter
+```java
+public class CustomAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    public CustomAuthenticationFilter(HttpSecurity http) {
+        super(new AntPathRequestMatcher("/api/login", "GET"));
+        setSecurityContextRepository(getSecurityContextRepository(http));
+    }
 
+    private SecurityContextRepository getSecurityContextRepository(HttpSecurity http) {
+        SecurityContextRepository securityContextRepository = http.getSharedObject(SecurityContextRepository.class);
+        if (securityContextRepository == null) {
+            securityContextRepository = new DelegatingSecurityContextRepository(
+                    new RequestAttributeSecurityContextRepository(), new HttpSessionSecurityContextRepository());
+        }
+        return securityContextRepository;
+    }
 
+    @Override
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+            throws AuthenticationException, IOException {
+
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
+
+        return this.getAuthenticationManager().authenticate(token);
+    }
+}
+```
+
+CustomAuthenticationProvider
+```java
+public class CustomAuthenticationProvider implements AuthenticationProvider {
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+
+        String loginId = authentication.getName();
+        String password = (String) authentication.getCredentials();
+
+        return new UsernamePasswordAuthenticationToken(loginId, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+    }
+
+    @Override
+    public boolean supports(Class<?> authentication) {
+        return authentication.isAssignableFrom(UsernamePasswordAuthenticationToken.class);
+    }
+}
+```
+
+AuthenticationManager - http Security 활용 
+```java
+@EnableWebSecurity
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        AuthenticationManager authenticationManager = authenticationManagerBuilder.build();            // build() 는 최초 한번 만 호출해야 한다
+
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/","/api/login").permitAll()
+                        .anyRequest().authenticated())
+                .authenticationManager(authenticationManager)
+                .addFilterBefore(customFilter(http, authenticationManager), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    public CustomAuthenticationFilter customFilter(HttpSecurity http, AuthenticationManager authenticationManager) {
+        CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(http);
+        customAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        return customAuthenticationFilter;
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(){
+        UserDetails user = User.withUsername("user").password("{noop}1111").roles("USER").build();
+        return  new InMemoryUserDetailsManager(user);
+    }
+}
+```
+- `AuthenticationManagerBuilder`를 `HttpSecurity` 객체로부터 가져와, 이를 통해 
+  `AuthenticationManager`를 생성하고 사용하는 방식
+- authenticationManagerBuilder.build()는 `AuthenticationManager`를 생성하는 과정. 주의할 점은, build() 메서드는 
+  `AuthenticationManager`를 처음 한 번만 호출해야 하고, 이후에는 재사용해야 함
+  - `AuthenticationManager authenticationManager = authenticationManagerBuilder.getObject()`
+- http.authenticationManager(authenticationManager)를 통해 `HttpSecurity`에 인증 관리자를 설정
+
+AuthenticationManager - 직접 생성 
+```java
+@EnableWebSecurity
+@Configuration
+public class SecurityConfig2 {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/","/api/login").permitAll()
+                        .anyRequest().authenticated())
+                .addFilterBefore(customFilter(http), UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+
+    public CustomAuthenticationFilter customFilter(HttpSecurity http) {
+
+        List<AuthenticationProvider> list1 = List.of(new DaoAuthenticationProvider());
+        ProviderManager parent = new ProviderManager(list1);
+        List<AuthenticationProvider> list2 = List.of(new AnonymousAuthenticationProvider("key"), new CustomAuthenticationProvider());
+        ProviderManager authenticationManager = new ProviderManager(list2, parent);
+
+        CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(http);
+        customAuthenticationFilter.setAuthenticationManager(authenticationManager);
+
+        return customAuthenticationFilter;
+
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(){
+        UserDetails user = User.withUsername("user").password("{noop}1111").roles("USER").build();
+        return  new InMemoryUserDetailsManager(user);
+    }
+}
+```
+- Custom 필터에서는 `UsernamePasswordAuthenticationToken`을 넘기는데 시큐리티에 있는 DaoAuthenticationProvider 또한
+  지원 이번에 만든 CustomAuthenticationProvider 또한 지원한다. 
+- 하지만 ProviderManager 생성 과정을 보면 DaoAuthenticationProvider는 부모로 추가 
+  CustomAuthenticationProvider는 ProviderManager가 가지는 providers 리스트에 들어간다. 
+- 즉 둘다 인증 진행이 가능하지만 providers 리스트가 먼저 탐색되기 때문에 CustomAuthenticationProvider가 동작하게된다. 
 
 
 
