@@ -38,5 +38,135 @@
 
 ![12.png](Image%2F12.png)
 
+### AuthenticationManager - Interface
+
+```java
+public interface AuthenticationManager {
+	Authentication authenticate(Authentication authentication) throws AuthenticationException;
+}
+```
+- 전달된 Authentication 객체를 인증하려고 시도하고, 성공하면 완전히 채워진 Authentication 객체(부여된 권한 포함)를 반환
+- Authentication 객체는 인증 필터로부터 생성되어 전달 받는다. 
+
+### ProviderManager - AuthenticationManager 구현체 - Class
+
+```java
+public class ProviderManager implements AuthenticationManager, MessageSourceAware, InitializingBean {
+    private List<AuthenticationProvider> providers = Collections.emptyList();
+    
+    private AuthenticationManager parent;
+    
+    @Override
+  	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+  		Class<? extends Authentication> toTest = authentication.getClass();
+  		AuthenticationException lastException = null;
+  		AuthenticationException parentException = null;
+  		Authentication result = null;
+  		Authentication parentResult = null;
+  		int currentPosition = 0;
+  		int size = this.providers.size();
+        // for문을 돌면서 해당 provider가 인증을 수행할 수 있는지 판단   
+  		for (AuthenticationProvider provider : getProviders()) {
+  			if (!provider.supports(toTest)) {
+  				continue;
+  			}
+  			if (logger.isTraceEnabled()) {
+  				logger.trace(LogMessage.format("Authenticating request with %s (%d/%d)",
+  						provider.getClass().getSimpleName(), ++currentPosition, size));
+  			}
+  			try {
+                // provider에게 인증을 위임 
+                // result 결과가 null이 아닌 Authentication 객체라면 for문 break  
+  				result = provider.authenticate(authentication);
+  				if (result != null) {
+  					copyDetails(authentication, result);
+  					break;
+  				}
+  			}
+  			catch (AccountStatusException | InternalAuthenticationServiceException ex) {
+  				prepareException(ex, authentication);
+  				// SEC-546: Avoid polling additional providers if auth failure is due to
+  				// invalid account status
+  				throw ex;
+  			}
+  			catch (AuthenticationException ex) {
+  				lastException = ex;
+  			}
+  		}
+        // 현재 매니저가 가지는 providers에서 result null = 인증 수행 불가 & 부모 manager를 가지면 부모의 authenticate 호출   
+  		if (result == null && this.parent != null) {
+  			// Allow the parent to try.
+  			try {
+  				parentResult = this.parent.authenticate(authentication);
+  				result = parentResult;
+  			}
+  			catch (ProviderNotFoundException ex) {
+  				// ignore as we will throw below if no other exception occurred prior to
+  				// calling parent and the parent
+  				// may throw ProviderNotFound even though a provider in the child already
+  				// handled the request
+  			}
+  			catch (AuthenticationException ex) {
+  				parentException = ex;
+  				lastException = ex;
+  			}
+  		}
+  		if (result != null) {
+  			if (this.eraseCredentialsAfterAuthentication && (result instanceof CredentialsContainer)) {
+  				// Authentication is complete. Remove credentials and other secret data
+  				// from authentication
+  				((CredentialsContainer) result).eraseCredentials();
+  			}
+  			// If the parent AuthenticationManager was attempted and successful then it
+  			// will publish an AuthenticationSuccessEvent
+  			// This check prevents a duplicate AuthenticationSuccessEvent if the parent
+  			// AuthenticationManager already published it
+  			if (parentResult == null) {
+  				this.eventPublisher.publishAuthenticationSuccess(result);
+  			}
+  
+  			return result;
+  		}
+  
+  		// Parent was null, or didn't authenticate (or throw an exception).
+  		if (lastException == null) {
+  			lastException = new ProviderNotFoundException(this.messages.getMessage("ProviderManager.providerNotFound",
+  					new Object[] { toTest.getName() }, "No AuthenticationProvider found for {0}"));
+  		}
+  		// If the parent AuthenticationManager was attempted and failed then it will
+  		// publish an AbstractAuthenticationFailureEvent
+  		// This check prevents a duplicate AbstractAuthenticationFailureEvent if the
+  		// parent AuthenticationManager already published it
+  		if (parentException == null) {
+  			prepareException(lastException, authentication);
+  		}
+  		throw lastException;
+  	}
+      
+    // 나머지 생략 ...
+}    
+```
+- `providers`: 실제 인증을 하는 `AutehenticationProvider`를 List 타입으로 갖는다. 
+- `parent`: `providers`에 있는 `AutehenticationProvider`에서 인증을 수행할 수 없는 경우 추가적으로 
+  `parent`에 있는 `AutehenticationProvider` 중에서 추가적으로 탐색할 수 있다. 
+- authenticate(): 동작 원리 주석 확인 
+
+formLogin API 기본 manager 
+```text
+
+ProviderManager : AnonymousAuthenticationProvider providers 존재 
+
+또한 부모 parent에도 ProviderManager를 가지는데 
+해당 ProviderManager는 DaoAuthenticationProvider를 가진다. 
+
+그래서 총 2개의 인증 Provider를 가진다. 
+
+폼 로그인 같은 경우 DaoAuthenticationProvider 통해서 인증을 수행 
+```
+
+
+
+
+
 
 
