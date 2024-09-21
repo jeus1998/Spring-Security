@@ -84,4 +84,98 @@ securityContextHolderStrategy.setContext(context);
 securityContextRepository.saveContext(context, request, response);
 ```
 
+### CustomFilter 적용하기 
 
+CustomAuthenticationFilter - 커스텀 필터 
+```java
+public class CustomAuthenticationFilter extends AbstractAuthenticationProcessingFilter {
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    
+    public CustomAuthenticationFilter(HttpSecurity http) {
+        super(new AntPathRequestMatcher("/api/login", "GET"));
+        setSecurityContextRepository(getSecurityContextRepository(http));
+    }
+    
+    private SecurityContextRepository getSecurityContextRepository(HttpSecurity http) {
+        SecurityContextRepository securityContextRepository = http.getSharedObject(SecurityContextRepository.class);
+        if (securityContextRepository == null) {
+            securityContextRepository = new DelegatingSecurityContextRepository(
+                    new HttpSessionSecurityContextRepository(), new RequestAttributeSecurityContextRepository());
+        }
+        return securityContextRepository;
+    }
+
+    @Override
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response)
+            throws AuthenticationException, IOException {
+
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
+
+        return this.getAuthenticationManager().authenticate(token);
+    }
+}
+```
+- `setSecurityContextRepository(getSecurityContextRepository(http));`
+  - 부모 클래스(AbstractAuthenticationProcessingFilter)의 setSecurityContextRepository() 메서드 
+- 인증에 성공하면 부모의 successfulAuthentication() 메서드 동작  
+  - this.securityContextHolderStrategy.setContext(context); - 스레드 로컬에 시큐리티 컨텍스트 저장 
+  - this.securityContextRepository.saveContext(context, request, response); - 세션,요청 객체에 시큐리티 컨텍스트 저장 
+
+
+SecurityConfig
+```java
+@EnableWebSecurity
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        AuthenticationManager authenticationManager = authenticationManagerBuilder.build(); // 인증 관리자 
+
+        http
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/login").permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(Customizer.withDefaults())
+                .securityContext(securityContext -> securityContext
+                        .requireExplicitSave(false)) // SecurityContextHolderFilter 선택 (세션 직접 저장) 
+                .authenticationManager(authenticationManager)
+                .addFilterBefore(customFilter(http, authenticationManager), UsernamePasswordAuthenticationFilter.class);
+        
+        return http.build();
+    }
+    
+    // 커스텀 필터 생성 
+    public CustomAuthenticationFilter customFilter(HttpSecurity http, AuthenticationManager authenticationManager) {
+        CustomAuthenticationFilter customAuthenticationFilter = new CustomAuthenticationFilter(http);
+        customAuthenticationFilter.setAuthenticationManager(authenticationManager);
+        return customAuthenticationFilter;
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(){
+        UserDetails user = User.withUsername("user").password("{noop}1111").roles("USER").build();
+        return  new InMemoryUserDetailsManager(user);
+    }
+}
+```
+
+### 정리
+
+- 성능 
+  - 시큐리티6는 시큐리티5에 비해서 성능을 고려 많이 했다.
+  - supplier 사용: session, Authentication, ...
+  - 선택적 세션 저장
+    - SecurityContextHolderFilter & SecurityContextPersistenceFilter
+    - securityContext -> securityContext.requireExplicitSave(false)
+- 커스텀 필터 
+  - 시큐리티 컨텍스트 세션 저장에 필요한 SecurityContextRepository 생성
+  - AbstractAuthenticationProcessingFilter 확장해서 만들기 
+- 세션 활용 X - JWT 활용이라면?
+  - securityContext -> securityContext.requireExplicitSave(false)
+  - SecurityContextRepository: `NullSecurityContextRepository`
