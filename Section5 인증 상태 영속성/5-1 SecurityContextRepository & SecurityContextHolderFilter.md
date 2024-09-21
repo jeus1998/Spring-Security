@@ -40,7 +40,9 @@ SecurityContextRepository를 통한 명시적 시큐리티 영속성은
 
 - `SecurityContextRepository`를 사용하여 `SecurityContext`를 얻고 이를 `SecurityContextHolder`에 설정하는 필터 클래스
 - 이 필터 클래스는 SecurityContextRepository.saveContext()를 강제로 실행시키지 않고 사용자가 명시적으로 호출되어야 
-  `SecurityContext`를 저장할 수 있는데 이는 `SecurityContextPersistenceFilter` 와 다른점이다
+  `SecurityContext`를 저장할 수 있는데 이는 `SecurityContextPersistenceFilter` 와 다른점이 
+  - `SecurityContextPersistenceFilter`: doFilter finally 부분에서 동작(세션에 컨텍스트 저장)한다. 
+  - `SecurityContextHolderFilter`: doFilter finally 부분에서 스레드 로컬에 저장된 컨텍스트 삭제만 진행 
 - 인증이 지속되어야 하는지를 각 인증 메커니즘이 독립적으로 선택할 수 있게 하여 더 나은 유연성을 제공하고 `HttpSession`에 
   필요할 때만 저장함으로써 성능을 향상시킨다
 
@@ -63,7 +65,7 @@ SecurityContextRepository를 통한 명시적 시큐리티 영속성은
 
 ![3.png](Image%2F3.png)
 
-### SecurityContextHolderFilter & SecurityContextPersistanceFilter
+### SecurityContextHolderFilter & SecurityContextPersistenceFilter
 
 ![4.png](Image%2F4.png)
 
