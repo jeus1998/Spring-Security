@@ -19,16 +19,18 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         http
-                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login").permitAll()
-                        .anyRequest().authenticated());
+                        .requestMatchers("/invalidSessionUrl", "/expiredUrl").permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(Customizer.withDefaults())
+                .sessionManagement(session -> session
+                        .invalidSessionUrl("/invalidSessionUrl")
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(false) // default: false 인증 차단이 아닌 만료 시키는 전략
+                        .expiredUrl("/expiredUrl")
+                );
 
         return  http.build();
-    }
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception{
-        return configuration.getAuthenticationManager();
     }
     @Bean
     public UserDetailsService userDetailsService(){
