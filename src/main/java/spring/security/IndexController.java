@@ -7,21 +7,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class IndexController {
-    private final SessionInfoService sessionInfoService;
-    @GetMapping("/sessionInfo")
-    public void sessionInfo(){
-        sessionInfoService.sessionInfo();
+    @GetMapping("/admin")
+    public String admin(){
+        return "adminPage";
+    }
+    @GetMapping("/login")
+    public String login(){
+        return "loginPage";
+    }
+    @GetMapping("/denied")
+    public String denied(){
+        return "deniedPage";
     }
     @GetMapping("/")
     public String index(){
         return "index";
-    }
-    @GetMapping("/invalidSessionUrl")
-    public String invalidSessionUrl(){
-        return "invalidSessionUrl";
-    }
-    @GetMapping("/expiredUrl")
-    public String expiredUrl(){
-        return "expiredUrl";
     }
 }
