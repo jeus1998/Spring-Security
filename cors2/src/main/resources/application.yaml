@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: cors2
+
+server:
+  port: 8082
