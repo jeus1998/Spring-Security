@@ -11,12 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 public class IndexController {
-    private final ContextService service;
     @GetMapping("/")
     public String index(){
         Authentication authentication = SecurityContextHolder.getContextHolderStrategy().getContext().getAuthentication();
         log.info("authentication={}", authentication);
-        service.service();
         return "index";
     }
 }
