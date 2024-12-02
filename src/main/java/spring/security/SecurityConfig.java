@@ -19,13 +19,8 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/").permitAll()
-                        .requestMatchers("/test").permitAll()
                         .anyRequest().authenticated())
-                .formLogin(Customizer.withDefaults())
-                .anonymous(anonymous -> anonymous
-                        .principal("guest")
-                        .authorities("ROLE_GUEST"));
-
+                .formLogin(Customizer.withDefaults());
         return  http.build();
     }
     @Bean
