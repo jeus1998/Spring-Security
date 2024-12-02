@@ -19,17 +19,13 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers("/test").permitAll()
+                        .anyRequest().authenticated())
                 .formLogin(Customizer.withDefaults())
-                .rememberMe(auth -> auth
-                        // .alwaysRemember(true)
-                        .tokenValiditySeconds(3600) // 1시간
-                        .userDetailsService(userDetailsService())
-                        .rememberMeParameter("remember")
-                        .rememberMeCookieName("remember")
-                        .key("security")
-                );
+                .anonymous(anonymous -> anonymous
+                        .principal("guest")
+                        .authorities("ROLE_GUEST"));
+
         return  http.build();
     }
     @Bean
