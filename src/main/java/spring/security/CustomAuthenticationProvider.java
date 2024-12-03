@@ -1,18 +1,29 @@
 package spring.security;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import java.util.List;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.stereotype.Component;
 
+@Component
+@RequiredArgsConstructor
 public class CustomAuthenticationProvider implements AuthenticationProvider {
+    private final UserDetailsService userDetailsService;
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        String loginId = authentication.getName();
+        String username = authentication.getName();
+
+        // 사용자 정보 조회
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+        // 비밀번호 검증 생략
+
         return new UsernamePasswordAuthenticationToken(
-                loginId, null, List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                userDetails.getUsername(), null, userDetails.getAuthorities());
     }
     @Override
     public boolean supports(Class<?> authentication) {
