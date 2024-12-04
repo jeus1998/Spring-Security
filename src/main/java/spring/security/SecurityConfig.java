@@ -27,9 +27,7 @@ public class SecurityConfig {
 
         http
                 .sessionManagement(session -> session
-                        .maximumSessions(1)
-                        .maxSessionsPreventsLogin(false)
-                        .expiredUrl("/login")
+                        .sessionFixation(sessionFix -> sessionFix.none())
                 );
 
         return  http.build();
