@@ -7,7 +7,10 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @EnableWebSecurity
@@ -17,15 +20,27 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationConfiguration configuration) throws Exception{
         http
-            .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated());
         http
-            .formLogin(Customizer.withDefaults());
+                .formLogin(Customizer.withDefaults());
+
+        http
+                .sessionManagement(session -> session
+                        .maximumSessions(1)
+                        .maxSessionsPreventsLogin(false)
+                        .expiredUrl("/login")
+                );
 
         return  http.build();
     }
     @Bean
     public UserDetailsService userDetailsService(){
-        return new CustomUserDetailsService();
+        UserDetails user = User
+                .withUsername("user")
+                .password("{noop}1111")
+                .roles("USER")
+                .build();
+        return new InMemoryUserDetailsManager(user);
     }
 }

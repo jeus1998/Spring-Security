@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class IndexController {
     @GetMapping("/")
-    public String index(){
+    public  Authentication index(){
         Authentication authentication = SecurityContextHolder.getContextHolderStrategy().getContext().getAuthentication();
         log.info("authentication={}", authentication);
-        return "index";
+        return authentication;
     }
 }
