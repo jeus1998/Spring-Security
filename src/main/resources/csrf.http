@@ -1,0 +1,9 @@
+### Send POST request
+POST http://localhost:8080/csrf
+Content-Type: application/x-www-form-urlencoded
+
+### Send POST request with csrf token
+POST http://localhost:8080/csrf
+Content-Type: application/x-www-form-urlencoded
+
+_csrf=8Oq2OU71Z5nmfhngyebVjH916WMIIsD9nJSTOxOTvRGA7_67lt-CC3uXAa3LR3qD_8vh6UcXxAI5FqHQrqGqWnL1jCi51s2L
