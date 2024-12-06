@@ -18,39 +18,17 @@ import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 @Configuration
 @Slf4j
 public class SecurityConfig {
-    /*
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        http
-                .csrf(Customizer.withDefaults());
-        http
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/csrf", "/form", "/formCsrf", "/supplier").permitAll()
-                        .anyRequest().authenticated());
-        http
-                .formLogin(Customizer.withDefaults());
-        return  http.build();
-    }
-    */
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        http
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
-                );
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/cookie", "/cookieCsrf").permitAll()
                         .anyRequest().authenticated());
-
-        http.addFilterBefore(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
-
         http
                 .formLogin(Customizer.withDefaults());
+
         return  http.build();
     }
-
     @Bean
     public UserDetailsService userDetailsService(){
         UserDetails user = User.withUsername("user").password("{noop}1111").roles("USER").build();
