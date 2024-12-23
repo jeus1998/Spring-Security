@@ -1,33 +1,45 @@
 package spring.security;
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 
 @RestController
-@RequiredArgsConstructor
 public class IndexController {
-    private final DataService dataService;
     @GetMapping("/")
-    public String index(){
+    public String index(HttpServletRequest request){
         return "index";
     }
     @GetMapping("/user")
     public String user(){
-        return dataService.getUser();
+        return "user";
     }
-    @GetMapping("/owner")
-    public Account owner(String name){
-        return dataService.getOwner(name);
+    @GetMapping("/db")
+    public String db(){
+        return "db";
     }
-    @GetMapping("/display")
-    public String display(){
-        return dataService.display();
+    @GetMapping("/admin")
+    public String admin(){
+        return "admin";
     }
-    @GetMapping("/authentication")
-    public Authentication authentication(){
-        return SecurityContextHolder.getContext().getAuthentication();
+
+    @GetMapping("/login")
+    public String login(HttpServletRequest request, MemberDto memberDto) throws ServletException, IOException {
+        request.login(memberDto.getUsername(), memberDto.getPassword());
+        System.out.println("login is successful");
+        return "login";
+    }
+    @GetMapping("/users")
+    public List<MemberDto> users(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        boolean authenticate = request.authenticate(response);
+        if (authenticate) {
+            return List.of(new MemberDto("user","1111"));
+        }
+        return Collections.emptyList();
     }
 }
