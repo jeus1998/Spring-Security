@@ -1,33 +1,26 @@
 package spring.security;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class IndexController {
-    private final DataService dataService;
+    private final AsyncService asyncService;
     @GetMapping("/")
     public String index(){
+        Authentication authentication = SecurityContextHolder.getContextHolderStrategy().getContext().getAuthentication();
+        log.info("currentThread={}", Thread.currentThread().getName());
+        log.info("authentication={}", authentication);
+        asyncService.async();
         return "index";
     }
     @GetMapping("/user")
     public String user(){
-        return dataService.getUser();
-    }
-    @GetMapping("/owner")
-    public Account owner(String name){
-        return dataService.getOwner(name);
-    }
-    @GetMapping("/display")
-    public String display(){
-        return dataService.display();
-    }
-    @GetMapping("/authentication")
-    public Authentication authentication(){
-        return SecurityContextHolder.getContext().getAuthentication();
+        return "user";
     }
 }
